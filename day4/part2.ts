@@ -13,7 +13,7 @@ class Board {
   constructor(private numbers: number[][]) {}
 
   rows = () => this.numbers;
-  columns = () => range(0, 4).map((column) => this.rows().map((row) => row[column]));
+  columns = () => range(0, 5).map((column) => this.rows().map((row) => row[column]));
 
   mark(draw: number) {
     this.numbers.forEach((row) => {
