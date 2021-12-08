@@ -13,6 +13,12 @@ class LedDisplay {
   }
 }
 
+type X = 0 | 1 | 2 | 3 | 4 | 5;
+type Y = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Coord = [X, Y];
+
+const knownDigits = ["abcefg", "cf", "acdeg", "acdfg", "bcdf", "abdfg", "abdefg", "acf", "abcdefg", "abcdfg"];
+
 class Digit {
   private segments: string[];
 
@@ -21,8 +27,6 @@ class Digit {
   }
 
   toString() {
-    type Coord = [number, number];
-
     // prettier-ignore
     const segmentCoords: { [key: string]: Coord[] } = {
       a: [[1, 0], [2, 0], [3, 0], [4, 0]],
@@ -45,4 +49,6 @@ class Digit {
   }
 }
 
-console.log(new Digit("abcdefg").toString());
+for (let i = 0; i < 10; i++) {
+  console.log(new Digit(knownDigits[i]).toString());
+}
