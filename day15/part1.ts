@@ -80,6 +80,8 @@ for (let y = 0; y < GRID_SIZE; y++) {
   }
 }
 
+const end = nodes[nodes.length - 1];
+
 let currentBest: Node = null;
 let bestPathsFound = 0;
 let nodesTested = 0;
@@ -98,10 +100,10 @@ function nodeComplete(node: Node) {
   bestPathsFound++;
 }
 
-function checkComplete(node: Node) {
+function checkComplete() {
   nodesTested++;
   const now = Date.now();
-  if (now - lastLog > 100) {
+  if (now - lastLog > 500) {
     lastLog = now;
     const elapsed = Date.now() - start;
     const cumulativePathFindTime = lastPathsFoundTimes.reduce((acc, x) => acc + x, 0);
@@ -155,11 +157,11 @@ function processNode(y: number, x: number): number {
 
   let best: Node = knownCost.length ? knownCost.reduce(pickBest) : undefined;
   currentBest = best;
-  const minKnownCost = Math.max(...nodes.map((n) => n.cost).filter((x) => x));
+  // const minKnownCost = Math.min(...nodes.map((n) => n.cost).filter((x) => x));
   let bestCost: number = best?.cost ?? naivePathCost(node);
 
   unknownCost.forEach((neighbor) => {
-    const neighborCost = cheapestCostHome(neighbor, [node.id], 0, bestCost, minKnownCost, []);
+    const neighborCost = cheapestCostHome(neighbor, [node.id], 0, bestCost, []);
     if (neighborCost < bestCost) {
       best = neighbor;
       bestCost = neighborCost;
@@ -187,7 +189,7 @@ function cheapestCostHome(
   avoidNodes: number[],
   previousCost: number,
   maxCost: number,
-  minKnownCost: number,
+  // minKnownCost: number,
   lowestPriceCache: number[]
 ): number {
   const currentCost = previousCost + node.risk;
@@ -211,14 +213,14 @@ function cheapestCostHome(
   let bestCost = best?.cost ?? Number.MAX_SAFE_INTEGER - node.risk;
 
   unknownCost.forEach((neighbor) => {
-    const neighborCost = cheapestCostHome(neighbor, avoidNodes.concat(node.id), currentCost, maxCost, minKnownCost, lowestPriceCache);
-    if (minKnownCost + neighborCost < bestCost) {
+    const neighborCost = cheapestCostHome(neighbor, avoidNodes.concat(node.id), currentCost, maxCost, lowestPriceCache);
+    if (neighborCost < bestCost) {
       best = neighbor;
       bestCost = neighborCost;
     }
   });
 
-  checkComplete(node);
+  checkComplete();
   node.activelyChecking = false;
   return bestCost + node.risk;
 }
@@ -230,16 +232,36 @@ function clearChecking() {
   });
 }
 
-function processsGrid() {
+function updateNode(node: Node): number {
+  const best = node.neighbors.map((nid) => nodes[nid]).reduce(pickBest);
+  const newCost = best.cost + node.risk;
+  if (best.id === node.previousStep && newCost === node.cost) {
+    return 0;
+  }
+  node.previousStep = best.id;
+  node.cost = newCost;
+  checkComplete();
+  return 1;
+}
+
+function processGrid(): number {
+  // const costs = nodes.map((n) => n.cost);
+  let updates = 0;
   for (let i = 1; i < GRID_SIZE * 2; i++) {
     for (let x = 0; x <= i; x++) {
       const y = i - x;
-      processNode(y, x);
+      if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+        updates += updateNode(nodes[y * GRID_SIZE + x]);
+      }
     }
   }
+  checkComplete();
+  return updates;
 }
 
-processsGrid();
+while (processGrid() > 0) {}
+debugger;
+dump();
 
 // function processGrid(x1: number, x2: number, y1: number, y2: number) {
 //   if (x1 === x2 && y1 === y2) {
@@ -270,20 +292,24 @@ processsGrid();
 
 console.log(`Computed cost of ${bestPathsFound} nodes`);
 
-const end = nodes[GRID_SIZE * GRID_SIZE - 1];
-console.log({ end });
-dump();
+function walkPathBackwards(node: Node, acc: Node[]): Node[] {
+  if (node.id === 0) {
+    return acc;
+  }
 
-function walkPathBackwards(node: Node): Node[] {
-  return node.id === 0 ? [] : !node.previousStep ? [node] : [node, ...walkPathBackwards(nodes[node.previousStep])];
+  const prev = nodes[node.previousStep];
+
+  if (!prev || acc.includes(prev)) {
+    console.log("loop detected");
+    return acc;
+  }
+
+  acc.push(prev);
+  return walkPathBackwards(prev, acc);
 }
 
-//
-// const result = walkPathBackwards(end);
-// const totalCost = result.reduce((acc, x) => acc + x.risk, 0);
-
-async function dump() {
-  const pathBack = currentBest ? walkPathBackwards(currentBest).map((node) => node.id) : [];
+function dump() {
+  const pathBack = end ? walkPathBackwards(end, []).map((node) => node.id) : [];
   const gridString = nodeGrid
     .map((line) => {
       return line
@@ -303,5 +329,7 @@ async function dump() {
         .join("");
     })
     .join("\n");
+
   console.log(gridString);
+  console.log("Total Cost " + end.cost);
 }
