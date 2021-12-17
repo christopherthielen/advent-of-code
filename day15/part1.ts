@@ -1,6 +1,6 @@
 import * as fs from "fs";
-import { countBy, range } from "lodash";
 import * as path from "path";
+import * as chalk from "chalk";
 
 const inputPath = path.resolve(__dirname, "input.txt");
 
@@ -43,14 +43,25 @@ interface Node {
   id: number;
   neighbors: number[];
   risk: number;
+  processing: boolean;
+  activelyChecking: boolean;
+  checking: boolean;
+  cost?: number;
+  previousStep?: number;
 }
 
+const hasCost = (node) => node.cost !== null;
 function node(coord: Coord): Node {
   return {
     coord: coord,
     id: coordToId(coord),
     neighbors: neighbors(coord).map(coordToId),
     risk: risk(coord),
+    processing: false,
+    activelyChecking: false,
+    checking: false,
+    cost: null,
+    previousStep: null,
   };
 }
 
@@ -58,49 +69,239 @@ const nodes: Node[] = [];
 for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
   nodes.push(node(idToCoord(i)));
 }
+nodes[0].cost = 0;
+nodes[0].previousStep = -1;
 
-let bestPath = naivePath.map(coordToId);
-let leastRisk = cost(naivePath);
-let END = coordToId([GRID_SIZE - 1, GRID_SIZE - 1]);
-
-let tested = 0;
-let lastLog = Date.now();
-
-function recordTested() {
-  tested++;
-  const now = Date.now();
-  if (now - lastLog > 1000) {
-    lastLog = now;
-    console.log(`Tested ${tested} paths. Least risk: ${leastRisk}`, bestPath);
+const nodeGrid: Node[][] = [];
+for (let y = 0; y < GRID_SIZE; y++) {
+  const line = (nodeGrid[y] = []);
+  for (let x = 0; x < GRID_SIZE; x++) {
+    line[x] = nodes[y * GRID_SIZE + x];
   }
 }
 
-function brute(id: number, path: number[], cost: number) {
-  if (cost > leastRisk) {
-    recordTested();
+let currentBest: Node = null;
+let bestPathsFound = 0;
+let nodesTested = 0;
+let start = Date.now();
+let lastLog = Date.now();
+let lastPathFound = Date.now();
+let lastPathsFoundTimes = [];
+
+function nodeComplete(node: Node) {
+  const timeToFindLastPath = Date.now() - lastPathFound;
+  lastPathFound = Date.now();
+  lastPathsFoundTimes.push(timeToFindLastPath);
+  if (lastPathsFoundTimes.length > 25) {
+    lastPathsFoundTimes.shift();
+  }
+  bestPathsFound++;
+}
+
+function checkComplete(node: Node) {
+  nodesTested++;
+  const now = Date.now();
+  if (now - lastLog > 100) {
+    lastLog = now;
+    const elapsed = Date.now() - start;
+    const cumulativePathFindTime = lastPathsFoundTimes.reduce((acc, x) => acc + x, 0);
+    console.log(
+      `Elapsed: ${elapsed}ms. Found ${bestPathsFound} paths. Tested ${nodesTested} nodes. ` +
+        `Time per path (last ${lastPathsFoundTimes.length}): ${cumulativePathFindTime / lastPathsFoundTimes.length / 1000}sec ` +
+        `Tests per sec: ${(nodesTested / elapsed) * 1000}`
+    );
+    dump();
+  }
+}
+
+const pickBest = (node1: Node, node2?: Node): Node => {
+  return !node1 ? node2 : !node2 ? node1 : node1.cost < node2.cost ? node1 : node2;
+};
+
+function naivePathCost(startNode: Node): number {
+  // console.log(`computing naive path from node ${startNode.coord} id ${startNode.id}`);
+  let node = startNode;
+  let cost = 0;
+  while (node.coord[0] > 0) {
+    cost += node.risk;
+    node = nodes[(node.coord[0] - 1) * GRID_SIZE];
+    // console.log(node.coord, node.id);
+  }
+  while (node.coord[1] > 0) {
+    cost += node.risk;
+    node = nodes[node.id - 1];
+    // console.log(node.coord, node.id);
+  }
+  // console.log(`naive path from node ${startNode.id} cost: ${cost}`);
+  return cost;
+}
+
+function sortUpAndToLeft(node1: Node, node2: Node) {
+  const dy = node1.coord[0] - node2.coord[0];
+  return dy === 0 ? node1.coord[1] - node2.coord[1] : dy;
+}
+
+function processNode(y: number, x: number): number {
+  const node = nodes[coordToId([y, x])];
+  if (node.cost) {
     return;
   }
 
-  if (id === END) {
-    recordTested();
-    if (cost < leastRisk) {
-      console.log(`New best path cost: ${cost}`, path);
-      bestPath = path;
-      leastRisk = cost;
-    } else {
-      console.log(`Nope.  ${cost} > ${leastRisk}`);
-    }
-    return;
-  }
+  node.processing = true;
 
-  nodes[id].neighbors.forEach((nid) => {
-    if (!path.includes(nid)) {
-      const neighbor = nodes[nid];
-      brute(nid, path.concat(nid), cost + neighbor.risk);
+  const neighbors = node.neighbors.map((nid) => nodes[nid]);
+  const knownCost = neighbors.filter((x) => hasCost(x));
+  const unknownCost = neighbors.filter((x) => !hasCost(x));
+
+  let best: Node = knownCost.length ? knownCost.reduce(pickBest) : undefined;
+  currentBest = best;
+  const minKnownCost = Math.max(...nodes.map((n) => n.cost).filter((x) => x));
+  let bestCost: number = best?.cost ?? naivePathCost(node);
+
+  unknownCost.forEach((neighbor) => {
+    const neighborCost = cheapestCostHome(neighbor, [node.id], 0, bestCost, minKnownCost, []);
+    if (neighborCost < bestCost) {
+      best = neighbor;
+      bestCost = neighborCost;
+      currentBest = best;
     }
+  });
+
+  if (best) {
+    node.previousStep = best.id;
+    node.cost = bestCost + node.risk;
+  }
+  node.processing = false;
+
+  nodeComplete(node);
+  clearChecking();
+
+  return node.cost;
+}
+
+// Walks paths until it finds a path home
+// Returns the total cost of the path, including the current node.
+// Avoids re-entering a node already in the path
+function cheapestCostHome(
+  node: Node,
+  avoidNodes: number[],
+  previousCost: number,
+  maxCost: number,
+  minKnownCost: number,
+  lowestPriceCache: number[]
+): number {
+  const currentCost = previousCost + node.risk;
+  if (currentCost >= maxCost) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  const previousVisitLowPrice = lowestPriceCache[node.id];
+  if (previousVisitLowPrice !== undefined && currentCost > previousVisitLowPrice) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  lowestPriceCache[node.id] = currentCost;
+
+  node.activelyChecking = true;
+  node.checking = true;
+
+  const neighbors = node.neighbors.filter((nid) => !avoidNodes.includes(nid)).map((nid) => nodes[nid]);
+  const knownCost = neighbors.filter((x) => hasCost(x));
+  const unknownCost = neighbors.filter((x) => !hasCost(x)).sort(sortUpAndToLeft);
+
+  let best: Node = knownCost.length ? knownCost.reduce(pickBest) : undefined;
+  let bestCost = best?.cost ?? Number.MAX_SAFE_INTEGER - node.risk;
+
+  unknownCost.forEach((neighbor) => {
+    const neighborCost = cheapestCostHome(neighbor, avoidNodes.concat(node.id), currentCost, maxCost, minKnownCost, lowestPriceCache);
+    if (minKnownCost + neighborCost < bestCost) {
+      best = neighbor;
+      bestCost = neighborCost;
+    }
+  });
+
+  checkComplete(node);
+  node.activelyChecking = false;
+  return bestCost + node.risk;
+}
+
+function clearChecking() {
+  nodes.forEach((n) => {
+    n.checking = false;
+    n.activelyChecking = false;
   });
 }
 
-brute(0, [0], 0);
+function processsGrid() {
+  for (let i = 1; i < GRID_SIZE * 2; i++) {
+    for (let x = 0; x <= i; x++) {
+      const y = i - x;
+      processNode(y, x);
+    }
+  }
+}
 
-console.log(cost(bestPath.map(idToCoord)));
+processsGrid();
+
+// function processGrid(x1: number, x2: number, y1: number, y2: number) {
+//   if (x1 === x2 && y1 === y2) {
+//     processNode(y1, x1);
+//   } else {
+//     const xmid = Math.floor(x1 + (x2 - x1) / 2);
+//     const ymid = Math.floor(y1 + (y2 - y1) / 2);
+//     if (x1 === x2) {
+//       processGrid(x1, x2, y1, ymid);
+//       processGrid(x1, x2, ymid + 1, y2);
+//     } else if (y1 === y2) {
+//       processGrid(x1, xmid, y1, y2);
+//       processGrid(xmid + 1, x2, y1, y2);
+//     } else {
+//       processGrid(x1, xmid, y1, ymid);
+//       processGrid(x1, xmid, ymid + 1, y2);
+//       processGrid(xmid + 1, x2, y1, ymid);
+//       processGrid(xmid + 1, x2, ymid + 1, y2);
+//     }
+//   }
+// }
+// processGrid(0, GRID_SIZE, 0, GRID_SIZE);
+
+// range(1, GRID_SIZE).forEach((i) => {
+//   range(0, i).forEach((y) => processNode(y, i));
+//   range(0, i + 1).forEach((x) => processNode(i, x));
+// });
+
+console.log(`Computed cost of ${bestPathsFound} nodes`);
+
+const end = nodes[GRID_SIZE * GRID_SIZE - 1];
+console.log({ end });
+dump();
+
+function walkPathBackwards(node: Node): Node[] {
+  return node.id === 0 ? [] : !node.previousStep ? [node] : [node, ...walkPathBackwards(nodes[node.previousStep])];
+}
+
+//
+// const result = walkPathBackwards(end);
+// const totalCost = result.reduce((acc, x) => acc + x.risk, 0);
+
+async function dump() {
+  const pathBack = currentBest ? walkPathBackwards(currentBest).map((node) => node.id) : [];
+  const gridString = nodeGrid
+    .map((line) => {
+      return line
+        .map((node) => {
+          return node.cost
+            ? pathBack.includes(node.id)
+              ? chalk.yellowBright("" + node.risk)
+              : node.risk
+            : node.processing
+            ? chalk.greenBright("X")
+            : node.activelyChecking
+            ? chalk.bgGray("?")
+            : node.checking
+            ? chalk.bgGray(" ")
+            : " ";
+        })
+        .join("");
+    })
+    .join("\n");
+  console.log(gridString);
+}

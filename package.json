@@ -9,8 +9,12 @@
     "url": "git+https://github.com/christopherthielen/advent-of-code-2021.git"
   },
   "dependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/blessed": "^0.1.19",
     "@types/lodash": "^4.14.177",
     "@types/node": "^16.11.11",
+    "blessed": "^0.1.81",
+    "chalk": "^4.0.0",
     "lodash": "^4.17.21",
     "prettier": "^2.5.1",
     "ts-node": "^10.4.0",
