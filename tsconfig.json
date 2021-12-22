@@ -1,6 +1,9 @@
 {
   "include": ["day*/**/*.ts"],
   "compilerOptions": {
-    "lib": ["ES2019"]
+    "target": "ES5",
+    "lib": [
+      "ES2019"
+    ]
   }
 }
