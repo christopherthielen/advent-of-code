@@ -13,6 +13,7 @@ type Scanner = {
   name: string;
   rawCoords: RawCoord[];
   orientation?: string;
+  origin?: Coord;
   normalizedCoords?: Coord[];
   normalizedKeys?: string[];
   distances: { [key: string]: Distances[] };
@@ -59,6 +60,7 @@ scanners.forEach((s) => {
 });
 
 scanners[0].orientation = "xyz";
+scanners[0].origin = { x: 0, y: 0, z: 0 };
 scanners[0].normalizedKeys = scanners[0].keys["xyz"];
 scanners[0].normalizedCoords = scanners[0].rawCoords.map((rc) => normalizeOrientation(rc, "xyz"));
 
@@ -120,6 +122,7 @@ function findOrientation(
 
 function normalizeScanner(scanner: Scanner, orientation: string, deltas: Threeple) {
   scanner.orientation = orientation;
+  scanner.origin = { x: deltas[0], y: deltas[1], z: deltas[2] };
   scanner.normalizedKeys = scanner.keys[orientation.toLowerCase()];
   scanner.normalizedCoords = scanner.rawCoords.map((rc) => normalizeOrientation(rc, orientation)).map((c) => offsetCoord(c, deltas));
 }
@@ -152,10 +155,13 @@ scanners.forEach((s) => {
   console.log(`${s.name} ${s.normalizedCoords ? "OK" : ""}`);
 });
 
-const beacons = scanners
-  .map((s) => s.normalizedCoords)
-  .flat()
-  .map((coord) => `${coord.x}-${coord.y}-${coord.z}`)
-  .reduce(uniqR, [] as string[]);
-
+const beacons = uniqWith(scanners.map((s) => s.normalizedCoords).flat(), isEqual) as Coord[];
 console.log("beacons: " + beacons.length);
+
+const scannerOrigins = scanners.map((s) => s.origin);
+const pairs = product(scannerOrigins, scannerOrigins);
+const maxDistance = pairs.reduce((acc, [left, right]) => {
+  return Math.max(acc, Math.abs(left.x - right.x) + Math.abs(left.y - right.y) + Math.abs(left.z - right.z));
+}, 0);
+
+console.log("Max manhattan distance: " + maxDistance);
