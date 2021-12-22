@@ -26,11 +26,9 @@ type P1Wins = number;
 type P2Wins = number;
 type Result = [P1Wins, P2Wins];
 const resultCache: { [key: string]: Result } = {};
-const cacheKey = (player: 1 | 0, p1pos: number, p2pos: number, p1score: number, p2score: number): string =>
-  [player, p1pos, p2pos, p1score, p2score].join(",");
 
 function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, p2score: number): Result {
-  const key = cacheKey(player, p1pos, p2pos, p1score, p2score);
+  const key = [player, p1pos, p2pos, p1score, p2score].join();
   const cachedResult = resultCache[key];
   if (cachedResult) {
     return cachedResult;
@@ -42,7 +40,7 @@ function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, 
     return [0, 1];
   }
 
-  const cumulativeResult = outcomes[player === 0 ? p1pos : p2pos].reduce(
+  const cumulativeResult: Result = outcomes[player === 0 ? p1pos : p2pos].reduce(
     (acc, outcome) => {
       // prettier-ignore
       const result = player === 0 ?
@@ -51,7 +49,7 @@ function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, 
 
       return [acc[0] + result[0], acc[1] + result[1]] as Result;
     },
-    [0, 0] as Result
+    [0, 0]
   );
 
   resultCache[key] = cumulativeResult;
