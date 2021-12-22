@@ -11,7 +11,6 @@ const positions = fs
   .map((line) => /Player . starting position: (\d+)/.exec(line)[1])
   .map((pos) => parseInt(pos, 10) - 1);
 
-const wins = [0, 0];
 const BOARD_SPACES = 10;
 const WINNING_SCORE = 21;
 const DIE_OUTCOMES = [1, 2, 3] as const;
@@ -60,4 +59,3 @@ function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, 
 }
 
 console.log(playTurn(0, positions[0], positions[1], 0, 0));
-console.log(wins);
