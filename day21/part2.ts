@@ -25,7 +25,9 @@ const outcomes = range(0, 10).map(roll3);
 type P1Wins = number;
 type P2Wins = number;
 type Result = [P1Wins, P2Wins];
-function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, p2score: number): Result {
+const play = memoize(_play, (...args) => args.join());
+
+function _play(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, p2score: number): Result {
   if (p1score >= WINNING_SCORE) {
     return [1, 0];
   } else if (p2score >= WINNING_SCORE) {
@@ -44,5 +46,4 @@ function playTurn(player: 1 | 0, p1pos: number, p2pos: number, p1score: number, 
   );
 }
 
-const play = memoize(playTurn, (...args) => args.join());
 console.log(play(0, positions[0], positions[1], 0, 0));
