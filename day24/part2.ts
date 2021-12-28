@@ -2,6 +2,8 @@ import * as fs from "fs";
 import cluster from "cluster";
 import { memoize, range } from "lodash";
 import * as path from "path";
+import { DateTime, Duration } from "luxon";
+
 import { cpus } from "os";
 
 // const inputPath = path.resolve(__dirname, "example1.txt");
@@ -70,7 +72,7 @@ let start = Date.now();
 // const MIN = 11111111111111;
 // const MIN = 99455293716156;
 const MIN = 12295100000000;
-const MAX = 99999999999999;
+const MAX = 55555555555555;
 const CHUNK = 100000000;
 // for (let x = MIN; x <= MAX; x++) {
 //   input = ("" + x).split("").map((x) => parseInt(x, 10));
@@ -130,7 +132,14 @@ if (cluster.isPrimary) {
       process.exit(0);
     } else if (event === "idle") {
       const complete = (current - STARTVAL) / (MAX - STARTVAL);
-      console.log(`${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(4)}%`);
+      const started = DateTime.fromMillis(start).toRelative();
+      const estimate = (Date.now() - start) / complete;
+      const eta = DateTime.fromMillis(start + estimate).toRelative();
+      console.log(
+        `${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(
+          4
+        )}% started: ${started} eta: ${eta}`
+      );
       worker.send(`chunk ${current}`);
       current += CHUNK;
     }
