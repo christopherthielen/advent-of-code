@@ -129,8 +129,8 @@ if (cluster.isPrimary) {
     } else if (event === "disconnect") {
       process.exit(0);
     } else if (event === "idle") {
-      const complete = (current - MIN) / (MAX - MIN);
-      console.log(`${worker.id} ${current}: ${Math.floor((current - MIN) / (Date.now() - start))}/ms ${(complete * 100).toFixed(8)}%`);
+      const complete = (current - STARTVAL) / (MAX - STARTVAL);
+      console.log(`${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(8)}%`);
       worker.send(`chunk ${current}`);
       current += CHUNK;
     }
