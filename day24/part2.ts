@@ -69,7 +69,7 @@ let start = Date.now();
 // let ticks = start;
 // const MIN = 11111111111111;
 // const MIN = 99455293716156;
-const MIN = 12125141488356;
+const MIN = 12295100000000;
 const MAX = 99999999999999;
 const CHUNK = 100000000;
 // for (let x = MIN; x <= MAX; x++) {
@@ -130,7 +130,7 @@ if (cluster.isPrimary) {
       process.exit(0);
     } else if (event === "idle") {
       const complete = (current - STARTVAL) / (MAX - STARTVAL);
-      console.log(`${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(8)}%`);
+      console.log(`${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(4)}%`);
       worker.send(`chunk ${current}`);
       current += CHUNK;
     }
