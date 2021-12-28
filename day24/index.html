@@ -1,0 +1,350 @@
+<html>
+<script>
+  const lines = `
+inp w
+mul x 0  # x = 0
+add x z  #
+mod x 26 # x = z (previous result) % 26 [0-26]
+div z 1  # ??? noop? z stays same [0]
+add x 10 # x = [10-36]
+eql x w  # x = x === w (1) ? [1]
+eql x 0  # x = x (1) === 0 ? [0]
+mul y 0  # y = 0
+add y 25 # y = 25 [25]
+mul y x  # y = 25 * x [0 | 1]
+add y 1
+mul z y
+mul y 0
+add y w
+add y 1
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 11
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 9
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 14
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 12
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 13
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 6
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -6
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 9
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -14
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 15
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 14
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 7
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 13
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 12
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -8
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 15
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -15
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 3
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 1
+add x 10
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 6
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -11
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 2
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -13
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 10
+mul y x
+add z y
+inp w
+mul x 0
+add x z
+mod x 26
+div z 26
+add x -4
+eql x w
+eql x 0
+mul y 0
+add y 25
+mul y x
+add y 1
+mul z y
+mul y 0
+add y w
+add y 12
+mul y x
+add z y
+`
+    .split(/[\r\n]/)
+    .filter((x) => !!x)
+    .map((line) => /(inp|add|mul|div|mod|eql) ([wxyz]) ?([-wxyz0-9]*)?/.exec(line))
+    .map(([_match, instruction, var1, var2]) => ({ instruction, v1: var1, v2: var2 }));
+  console.log({ lines });
+  const registers = { w: 0, x: 0, y: 0, z: 0 };
+  let input = "13579246899999".split("").map((x) => parseInt(x, 10));
+  // const input = "5".split("").map((x) => parseInt(x, 10));
+
+  const set = (variable, value) => (registers[ variable ] = value);
+  const val = (variable) => registers[ variable ] ?? parseInt(variable, 10);
+  const ops = {
+    inp: (cmd) => set(cmd.v1, input.shift()),
+    add: (cmd) => set(cmd.v1, val(cmd.v1) + val(cmd.v2)),
+    mul: (cmd) => set(cmd.v1, val(cmd.v1) * val(cmd.v2)),
+    div: (cmd) => set(cmd.v1, Math.floor(val(cmd.v1) / val(cmd.v2))),
+    mod: (cmd) => set(cmd.v1, val(cmd.v1) % val(cmd.v2)),
+    eql: (cmd) => set(cmd.v1, val(cmd.v1) === val(cmd.v2) ? 1 : 0)
+  };
+
+  const lpad = (chars, v) => {
+    let str = "" + v;
+    while (str.length < chars) str = " " + str;
+    return str;
+  };
+
+  const s = {
+    inp: (cmd, v1, v2, r) => `[in: ${cmd.v1}] -> ${r}`,
+    add: (cmd, v1, v2, r) => `[${lpad(3, cmd.v1)} + ${lpad(3, cmd.v2)}] [${lpad(9, v1)} + ${lpad(9, v2)} = ${lpad(9, r)}]`,
+    mul: (cmd, v1, v2, r) => `[${lpad(3, cmd.v1)} * ${lpad(3, cmd.v2)}] [${lpad(9, v1)} * ${lpad(9, v2)} = ${lpad(9, r)}]`,
+    div: (cmd, v1, v2, r) => `[${lpad(3, cmd.v1)} / ${lpad(3, cmd.v2)}] [${lpad(9, v1)} / ${lpad(9, v2)} = ${lpad(9, r)}]`,
+    mod: (cmd, v1, v2, r) => `[${lpad(3, cmd.v1)} % ${lpad(3, cmd.v2)}] [${lpad(9, v1)} % ${lpad(9, v2)} = ${lpad(9, r)}]`,
+    eql: (cmd, v1, v2, r) => `[${lpad(3, cmd.v1)} = ${lpad(3, cmd.v2)}] [${lpad(9, v1)} = ${lpad(9, v2)} = ${lpad(9, r)}]`
+  };
+
+  const op = (cmd) => {
+    const v1 = val(cmd.v1);
+    const v2 = val(cmd.v2);
+    const r = ops[ cmd.instruction ](cmd);
+    if (cmd.instruction === "inp") {
+      intermediate.push([registers.w, registers.x, registers.y, registers.z].map(x => lpad(10, x)));
+    }
+    console.log(
+      s[ cmd.instruction ](cmd, v1, v2, r) +
+      " " +
+      [lpad(10, registers.w), lpad(10, registers.x), lpad(10, registers.y), lpad(10, registers.z)]
+    );
+  };
+
+  function run() {
+    const code = lines.slice();
+    registers.w = registers.x = registers.y = registers.z = 0;
+    while (code.length) op(code.shift());
+    return registers.z === 0;
+  }
+
+  var intermediate = [];
+
+  function update() {
+    intermediate = [];
+    input = [];
+    for (var i = 14; i > 0; i--) {
+      input.push(parseInt(document.forms[ 0 ][ "d" + i ].value, 10));
+    }
+    console.log(input);
+    run();
+    intermediate.push([registers.w, registers.x, registers.y, registers.z].map(x => lpad(10, x)));
+    document.forms[ 1 ].intermediate.value = intermediate.map(x => JSON.stringify(x)).join("\n");
+  }
+
+  setTimeout(update, 100);
+</script>
+<body>
+<form action="">
+  <input type="number" name="d14" min="1" max="9" value="1" onChange="update()" />
+  <input type="number" name="d13" min="1" max="9" value="3" onChange="update()" />
+  <input type="number" name="d12" min="1" max="9" value="5" onChange="update()" />
+  <input type="number" name="d11" min="1" max="9" value="7" onChange="update()" />
+  <input type="number" name="d10" min="1" max="9" value="9" onChange="update()" />
+  <input type="number" name="d9" min="1" max="9" value="2" onChange="update()" />
+  <input type="number" name="d8" min="1" max="9" value="4" onChange="update()" />
+  <input type="number" name="d7" min="1" max="9" value="6" onChange="update()" />
+  <input type="number" name="d6" min="1" max="9" value="8" onChange="update()" />
+  <input type="number" name="d5" min="1" max="9" value="9" onChange="update()" />
+  <input type="number" name="d4" min="1" max="9" value="9" onChange="update()" />
+  <input type="number" name="d3" min="1" max="9" value="9" onChange="update()" />
+  <input type="number" name="d2" min="1" max="9" value="9" onChange="update()" />
+  <input type="number" name="d1" min="1" max="9" value="9" onChange="update()" />
+</form>
+<form action="">
+  <textarea name="intermediate" rows="17" cols="100"></textarea>
+</form>
+</body>
+</html>
