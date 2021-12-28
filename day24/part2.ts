@@ -71,7 +71,7 @@ let start = Date.now();
 // let ticks = start;
 // const MIN = 11111111111111;
 // const MIN = 99455293716156;
-const MIN = 12295100000000;
+const MIN = 13219500000000;
 const MAX = 55555555555555;
 const CHUNK = 100000000;
 // for (let x = MIN; x <= MAX; x++) {
@@ -119,6 +119,7 @@ function processDigit(prev: number[], prevZ: number, start = 1, end = 9) {
 if (cluster.isPrimary) {
   let STARTVAL = MIN - (MIN % CHUNK);
   let current = STARTVAL;
+  let pending: number[] = [];
 
   for (let i = 0; i < cpus().length - 1; i++) {
     cluster.fork();
@@ -131,16 +132,22 @@ if (cluster.isPrimary) {
     } else if (event === "disconnect") {
       process.exit(0);
     } else if (event === "idle") {
-      const complete = (current - STARTVAL) / (MAX - STARTVAL);
-      const started = DateTime.fromMillis(start).toRelative();
-      const estimate = (Date.now() - start) / complete;
-      const eta = DateTime.fromMillis(start + estimate).toRelative();
-      console.log(
-        `${worker.id} ${current}: ${Math.floor((current - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(
-          4
-        )}% started: ${started} eta: ${eta}`
-      );
-      worker.send(`chunk ${current}`);
+      const completedBlock = parseInt(detail, 10);
+      if (!isNaN(completedBlock)) {
+        pending = pending.filter((val) => val !== completedBlock * CHUNK);
+        const minPending = Math.min(...pending);
+        const complete = (minPending - STARTVAL) / (MAX - STARTVAL);
+        const started = DateTime.fromMillis(start).toRelative();
+        const estimate = (Date.now() - start) / complete;
+        const eta = DateTime.fromMillis(start + estimate).toRelative();
+        console.log(
+          `${worker.id} ${minPending}: ${Math.floor((minPending - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(
+            4
+          )}% started: ${started} eta: ${eta}`
+        );
+      }
+      pending.push(current);
+      worker.send(`chunk ${Math.floor(current / CHUNK)}`);
       current += CHUNK;
     }
   });
@@ -149,11 +156,10 @@ if (cluster.isPrimary) {
     const [_match, event, detail] = /([^ ]+) ?(.*)?/.exec(msg);
     if (event === "chunk") {
       const prev = detail.split("").map((c) => parseInt(c, 10));
-      while (prev[prev.length - 1] === 0) prev.pop();
       cluster.worker.send(`working: ${detail}`);
       const prevZ = prev.reduce((prevZ, w, idx) => run(idx, w, prevZ), 0);
       processDigit(prev, prevZ);
-      cluster.worker.send("idle");
+      cluster.worker.send(`idle ${detail}`);
     }
   });
   cluster.worker.send("idle");
