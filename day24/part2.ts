@@ -59,8 +59,8 @@ let start = Date.now();
 // const MIN = 99455293716156;
 // const MIN = 99444444444444;
 // const MAX = 99555555555555;
-const MIN = 45300191516111;
-const MAX = 55555555555555;
+const MIN = 11111111111111;
+const MAX = 99999999999999;
 const CHUNK = 1000000000;
 
 function processDigit(prev: number[], prevZ: number, start = 1, end = 9) {
@@ -102,9 +102,9 @@ if (cluster.isPrimary) {
         pending = pending.filter((val) => val !== completedBlock * CHUNK);
         const minPending = Math.min(...pending);
         const complete = (minPending - STARTVAL) / (MAX - STARTVAL);
-        const started = DateTime.fromMillis(start).toRelative();
+        const started = DateTime.fromMillis(start).toRelative({ round: false });
         const estimate = (Date.now() - start) / complete;
-        const eta = DateTime.fromMillis(start + estimate).toRelative();
+        const eta = DateTime.fromMillis(start + estimate).toRelative({ round: false });
         console.log(
           `${worker.id} ${completedBlock} ${minPending}: ${Math.floor((minPending - STARTVAL) / (Date.now() - start))}/ms ${(
             complete * 100
@@ -137,4 +137,4 @@ if (cluster.isPrimary) {
   cluster.worker.send("idle");
 }
 
-process.on("beforeExit", () => "MEIN LABEN");
+process.on("beforeExit", () => "MEIN LEBEN");
