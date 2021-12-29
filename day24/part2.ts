@@ -6,90 +6,17 @@ import { DateTime, Duration } from "luxon";
 
 import { cpus } from "os";
 
-// const inputPath = path.resolve(__dirname, "example1.txt");
-// const inputPath = path.resolve(__dirname, "example2.txt");
-// const inputPath = path.resolve(__dirname, "example3.txt");
 const inputPath = path.resolve(__dirname, "input.txt");
-// const inputPath = path.resolve(__dirname, "14.txt");
-let DEBUG = false;
 
 const W = 0, X = 1, Y = 2, Z = 3; // prettier-ignore
-const addrs = { w: W, x: X, y: Y, z: Z };
 let registers = [0, 0, 0, 0];
 
-const ops = {
-  // inp: (cmd: Command2) => (registers[cmd.v1] = input.shift()),
-  inp: (cmd: Command2) => {}, // (registers[cmd.v1] = input.shift()),
-  add: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] + registers[cmd.v2]),
-  mul: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] * registers[cmd.v2]),
-  div: (cmd: Command2) => (registers[cmd.v1] = Math.floor(registers[cmd.v1] / registers[cmd.v2])),
-  mod: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] % registers[cmd.v2]),
-  eql: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] === registers[cmd.v2] ? 1 : 0),
-  addl: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] + cmd.l),
-  mull: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] * cmd.l),
-  divl: (cmd: Command2) => (registers[cmd.v1] = Math.floor(registers[cmd.v1] / cmd.l)),
-  modl: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] % cmd.l),
-  eqll: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] === cmd.l ? 1 : 0),
-};
-
 function decompiled(divz: 1 | 26, addx: number, addy: number) {
-  let z = Math.floor(registers[Z] / divz);
   let x = (registers[Z] % 26) + addx === registers[W] ? 0 : 1;
-  z = z * (25 * x + 1);
-  return (registers[Z] = z + (registers[W] + addy) * x);
+  return (registers[Z] = Math.floor(registers[Z] / divz) * (25 * x + 1) + (registers[W] + addy) * x);
 }
 
-type Instruction = "inp" | "add" | "mul" | "div" | "mod" | "eql";
-type Var = "w" | "x" | "y" | "z";
-type Command = { instruction: Instruction; v1: Var; v2: Var };
-type Command2 = { op: () => void; v1: number; v2: number; l?: number; divz?: number; addx?: number; addy?: number };
-const programs: Command2[][] = [];
-fs.readFileSync(inputPath, "utf-8")
-  .split(/[\r\n]/)
-  .filter((x) => !!x)
-  .map((line) => /(inp|add|mul|div|mod|eql) ([wxyz]) ?([-wxyz0-9]*)?/.exec(line))
-  .map(([_match, instruction, var1, var2]) => ({ instruction, v1: var1, v2: var2 } as Command))
-  .forEach((cmd) => {
-    if (cmd.instruction === "inp") {
-      programs.push([]);
-    }
-    const l = parseInt(cmd.v2);
-    const op = isNaN(l) ? ops[cmd.instruction] : ops[cmd.instruction + "l"];
-    const command2 = { ...cmd, v1: addrs[cmd.v1], v2: addrs[cmd.v2], l, op: () => op(command2) };
-    programs[programs.length - 1].push(command2);
-  });
-
-// programs[0] = [{ op: () => decompiled(1, 10, 1) } as Command2];
-// programs[1] = [{ op: () => decompiled(1, 11, 9) } as Command2];
-// programs[2] = [{ op: () => decompiled(1, 14, 12) } as Command2];
-// programs[3] = [{ op: () => decompiled(1, 13, 6) } as Command2];
-// programs[4] = [{ op: () => decompiled(26, -6, 9) } as Command2];
-// programs[5] = [{ op: () => decompiled(26, -14, 15) } as Command2];
-// programs[6] = [{ op: () => decompiled(1, 14, 7) } as Command2];
-// programs[7] = [{ op: () => decompiled(1, 13, 12) } as Command2];
-// programs[8] = [{ op: () => decompiled(26, -8, 15) } as Command2];
-// programs[9] = [{ op: () => decompiled(26, -15, 3) } as Command2];
-// programs[10] = [{ op: () => decompiled(1, 10, 6) } as Command2];
-// programs[11] = [{ op: () => decompiled(26, -11, 2) } as Command2];
-// programs[12] = [{ op: () => decompiled(26, -13, 10) } as Command2];
-// programs[13] = [{ op: () => decompiled(26, -4, 12) } as Command2];
-
-const run = _runDecompiled;
-// const run = _runMemoized;
-
-const _runMemoized = memoize(_run, (ci, w, z) => (z << 8) + (ci << 4) + w);
-
-function _run(codeIndex: number, w: number, z: number): number {
-  const commands = programs[codeIndex];
-  registers[W] = w;
-  registers[Z] = z;
-  for (let i = 0; i < commands.length; i++) {
-    commands[i].op();
-  }
-  return registers[Z];
-}
-
-function _runDecompiled(codeIndex: number, w: number, z: number): number {
+function run(codeIndex: number, w: number, z: number): number {
   registers[W] = w;
   registers[Z] = z;
   // prettier-ignore
@@ -130,38 +57,11 @@ let start = Date.now();
 // let ticks = start;
 // const MIN = 11111111111111;
 // const MIN = 99455293716156;
-// const MIN = 99455144444444;
+// const MIN = 99444444444444;
 // const MAX = 99555555555555;
-const MIN = 28060800000000;
+const MIN = 45300191516111;
 const MAX = 55555555555555;
 const CHUNK = 1000000000;
-// const CHUNK = 10000000;
-// for (let x = MIN; x <= MAX; x++) {
-//   input = ("" + x).split("").map((x) => parseInt(x, 10));
-//   if (!input.some((x) => x === 0)) {
-//     registers = [0, 0, 0, 0];
-//     for (let i = 0; i < programs.length; i++) {
-//       registers[Z] = run(i, input[i], registers[Z]);
-//     }
-//     const result = registers[Z] === 0;
-//     if (Date.now() - ticks >= 10000) {
-//       const complete = (x - MIN) / (MAX - MIN);
-//       console.log(
-//         `${x}: ${result} ${Math.floor(((x - MIN) / (Date.now() - start)) * 1000)}/sec ${(complete * 100).toFixed(8)}% ETA: ${(
-//           (Date.now() - start) /
-//           complete /
-//           60000
-//         ).toFixed(2)} minutes`
-//       );
-//       // console.log(`${x}: ${result} ${Math.floor(((MAX - x) / (Date.now() - start)) * 1000)}/sec ${(complete * 100).toFixed(8)}%`);
-//       ticks = Date.now();
-//     } else if (result) {
-//       // found 99999795919456 after 5 mins
-//       console.log(`${x}: ${result}`);
-//       process.exit(1);
-//     }
-//   }
-// }
 
 function processDigit(prev: number[], prevZ: number, start = 1, end = 9) {
   const digit = prev.length;
@@ -210,6 +110,11 @@ if (cluster.isPrimary) {
             complete * 100
           ).toFixed(4)}% started: ${started} eta: ${eta}`
         );
+      }
+      let currentStr = "" + Math.floor(current / CHUNK);
+      while (currentStr.indexOf("0") !== -1) {
+        current += CHUNK;
+        currentStr = "" + Math.floor(current / CHUNK);
       }
       pending.push(current);
       worker.send(`chunk ${Math.floor(current / CHUNK)}`);
