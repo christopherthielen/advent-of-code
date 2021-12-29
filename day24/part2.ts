@@ -32,10 +32,17 @@ const ops = {
   eqll: (cmd: Command2) => (registers[cmd.v1] = registers[cmd.v1] === cmd.l ? 1 : 0),
 };
 
+function decompiled(divz: 1 | 26, addx: number, addy: number) {
+  let z = Math.floor(registers[Z] / divz);
+  let x = (registers[Z] % 26) + addx === registers[W] ? 0 : 1;
+  z = z * (25 * x + 1);
+  return (registers[Z] = z + (registers[W] + addy) * x);
+}
+
 type Instruction = "inp" | "add" | "mul" | "div" | "mod" | "eql";
 type Var = "w" | "x" | "y" | "z";
 type Command = { instruction: Instruction; v1: Var; v2: Var };
-type Command2 = { op: () => void; v1: number; v2: number; l: number };
+type Command2 = { op: () => void; v1: number; v2: number; l?: number; divz?: number; addx?: number; addy?: number };
 const programs: Command2[][] = [];
 fs.readFileSync(inputPath, "utf-8")
   .split(/[\r\n]/)
@@ -52,13 +59,28 @@ fs.readFileSync(inputPath, "utf-8")
     programs[programs.length - 1].push(command2);
   });
 
-const run = memoize(_run, (ci, w, z) => (z << 8) + (ci << 4) + w);
+// programs[0] = [{ op: () => decompiled(1, 10, 1) } as Command2];
+// programs[1] = [{ op: () => decompiled(1, 11, 9) } as Command2];
+// programs[2] = [{ op: () => decompiled(1, 14, 12) } as Command2];
+// programs[3] = [{ op: () => decompiled(1, 13, 6) } as Command2];
+// programs[4] = [{ op: () => decompiled(26, -6, 9) } as Command2];
+// programs[5] = [{ op: () => decompiled(26, -14, 15) } as Command2];
+// programs[6] = [{ op: () => decompiled(1, 14, 7) } as Command2];
+// programs[7] = [{ op: () => decompiled(1, 13, 12) } as Command2];
+// programs[8] = [{ op: () => decompiled(26, -8, 15) } as Command2];
+// programs[9] = [{ op: () => decompiled(26, -15, 3) } as Command2];
+// programs[10] = [{ op: () => decompiled(1, 10, 6) } as Command2];
+// programs[11] = [{ op: () => decompiled(26, -11, 2) } as Command2];
+// programs[12] = [{ op: () => decompiled(26, -13, 10) } as Command2];
+// programs[13] = [{ op: () => decompiled(26, -4, 12) } as Command2];
+
+const run = _runDecompiled;
+// const run = _runMemoized;
+
+const _runMemoized = memoize(_run, (ci, w, z) => (z << 8) + (ci << 4) + w);
 
 function _run(codeIndex: number, w: number, z: number): number {
   const commands = programs[codeIndex];
-  if (!commands) {
-    debugger;
-  }
   registers[W] = w;
   registers[Z] = z;
   for (let i = 0; i < commands.length; i++) {
@@ -67,13 +89,53 @@ function _run(codeIndex: number, w: number, z: number): number {
   return registers[Z];
 }
 
+function _runDecompiled(codeIndex: number, w: number, z: number): number {
+  registers[W] = w;
+  registers[Z] = z;
+  // prettier-ignore
+  switch (codeIndex) {
+    case 0:
+      return decompiled(1, 10, 1);
+    case 1:
+      return decompiled(1, 11, 9);
+    case 2:
+      return decompiled(1, 14, 12);
+    case 3:
+      return decompiled(1, 13, 6);
+    case 4:
+      return decompiled(26, -6, 9);
+    case 5:
+      return decompiled(26, -14, 15);
+    case 6:
+      return decompiled(1, 14, 7);
+    case 7:
+      return decompiled(1, 13, 12);
+    case 8:
+      return decompiled(26, -8, 15);
+    case 9:
+      return decompiled(26, -15, 3);
+    case 10:
+      return decompiled(1, 10, 6);
+    case 11:
+      return decompiled(26, -11, 2);
+    case 12:
+      return decompiled(26, -13, 10);
+    case 13:
+      return decompiled(26, -4, 12);
+  }
+  return registers[Z];
+}
+
 let start = Date.now();
 // let ticks = start;
 // const MIN = 11111111111111;
 // const MIN = 99455293716156;
-const MIN = 13219500000000;
+// const MIN = 99455144444444;
+// const MAX = 99555555555555;
+const MIN = 28060800000000;
 const MAX = 55555555555555;
-const CHUNK = 100000000;
+const CHUNK = 1000000000;
+// const CHUNK = 10000000;
 // for (let x = MIN; x <= MAX; x++) {
 //   input = ("" + x).split("").map((x) => parseInt(x, 10));
 //   if (!input.some((x) => x === 0)) {
@@ -116,18 +178,21 @@ function processDigit(prev: number[], prevZ: number, start = 1, end = 9) {
   }
 }
 
+// processDigit([9, 9, 4, 5, 5, 2, 9, 1, 5, 1, 6, 1, 5], 10, 6);
+
 if (cluster.isPrimary) {
   let STARTVAL = MIN - (MIN % CHUNK);
   let current = STARTVAL;
   let pending: number[] = [];
 
-  for (let i = 0; i < cpus().length - 1; i++) {
+  for (let i = 0; i < cpus().length; i++) {
     cluster.fork();
   }
 
   cluster.on("message", (worker, msg) => {
     const [_match, event, detail] = /([^ ]+) ?(.*)?/.exec(msg);
     if (event === "winner") {
+      fs.writeFileSync("./winner.txt", msg + "\n");
       Object.values(cluster.workers).forEach((w) => w.kill());
     } else if (event === "disconnect") {
       process.exit(0);
@@ -141,9 +206,9 @@ if (cluster.isPrimary) {
         const estimate = (Date.now() - start) / complete;
         const eta = DateTime.fromMillis(start + estimate).toRelative();
         console.log(
-          `${worker.id} ${minPending}: ${Math.floor((minPending - STARTVAL) / (Date.now() - start))}/ms ${(complete * 100).toFixed(
-            4
-          )}% started: ${started} eta: ${eta}`
+          `${worker.id} ${completedBlock} ${minPending}: ${Math.floor((minPending - STARTVAL) / (Date.now() - start))}/ms ${(
+            complete * 100
+          ).toFixed(4)}% started: ${started} eta: ${eta}`
         );
       }
       pending.push(current);
@@ -159,7 +224,9 @@ if (cluster.isPrimary) {
       cluster.worker.send(`working: ${detail}`);
       const prevZ = prev.reduce((prevZ, w, idx) => run(idx, w, prevZ), 0);
       processDigit(prev, prevZ);
-      cluster.worker.send(`idle ${detail}`);
+      cluster.worker.send(`idle ${detail}`, (error) => {
+        error && console.error(`failed to send message: idle ${detail}`);
+      });
     }
   });
   cluster.worker.send("idle");
