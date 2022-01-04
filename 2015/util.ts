@@ -1,5 +1,6 @@
 import * as fs from "fs";
 
+export const uniqR = <T>(acc: T[], item: T): T[] => (acc.includes(item) ? acc : acc.concat(item));
 export const combine2 = <T>(items: T[]) => combine(items, 2) as Array<[T, T]>;
 export const combine3 = <T>(items: T[]) => combine(items, 3) as Array<[T, T, T]>;
 export const combine = <T>(items: T[], count: number): Array<T[]> => {
@@ -17,7 +18,6 @@ export class Counter extends Map {
   constructor() {
     super();
   }
-
   count(key: string) {
     if (!this.has(key)) {
       this.set(key, 1);
