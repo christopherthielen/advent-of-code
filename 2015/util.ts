@@ -13,6 +13,20 @@ export const combine = <T>(items: T[], count: number): Array<T[]> => {
 
 export const toInt = (str: string) => parseInt(str, 10);
 
+export class Counter extends Map {
+  constructor() {
+    super();
+  }
+
+  count(key: string) {
+    if (!this.has(key)) {
+      this.set(key, 1);
+    } else {
+      this.set(key, this.get(key) + 1);
+    }
+  }
+}
+
 export function readLines(filename: string): string[] {
   return readFile(filename)
     .split(/[\r\n]/)
