@@ -1,5 +1,14 @@
 import * as fs from "fs";
 
+export const range = (start: number, end: number) => {
+  const low = Math.min(start, end);
+  const high = Math.max(start, end);
+  const result = [];
+  for (let i = low; i <= high; i++) {
+    result.push(i);
+  }
+  return start < end ? result : result.reverse();
+};
 export const uniqR = <T>(acc: T[], item: T): T[] => (acc.includes(item) ? acc : acc.concat(item));
 export const combine2 = <T>(items: T[]) => combine(items, 2) as Array<[T, T]>;
 export const combine3 = <T>(items: T[]) => combine(items, 3) as Array<[T, T, T]>;
