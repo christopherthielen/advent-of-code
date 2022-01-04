@@ -1,0 +1,10 @@
+{
+  "include": ["day*/**/*.ts"],
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "target": "ES5",
+    "lib": [
+      "ES2019"
+    ]
+  }
+}
