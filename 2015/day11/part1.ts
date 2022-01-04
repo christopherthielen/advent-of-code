@@ -7,11 +7,12 @@ const fromCodes = (pw: PW) => pw.map((c) => String.fromCharCode(c + ACODE)).join
 type Char = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25;
 type PW = [Char, Char, Char, Char, Char, Char, Char, Char];
 
-function increment(pw: PW, digit = pw.length - 1): void {
+function increment(pw: PW, digit = pw.length - 1): PW {
   pw[digit] = ((pw[digit] + 1) % 26) as Char;
   if (pw[digit] === 0) {
     increment(pw, digit - 1);
   }
+  return pw;
 }
 
 const BAD = ["i", "o", "l"].map(code);
@@ -48,4 +49,7 @@ const nextValid = (pw: PW) => {
   return pw;
 };
 
-console.log(fromCodes(nextValid(toCodes(input))));
+const next1 = fromCodes(nextValid(toCodes(input)));
+console.log(next1);
+const next2 = fromCodes(nextValid(increment(toCodes(next1))));
+console.log(next2);
