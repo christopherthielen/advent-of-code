@@ -1,0 +1,12 @@
+{
+  "name": "advent-of-code",
+  "private": "true",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/christopherthielen/advent-of-code.git"
+  },
+  "dependencies": {
+    "prettier": "^2.5.1",
+    "ts-node": "^10.4.0"
+  }
+}
