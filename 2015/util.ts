@@ -29,6 +29,15 @@ export const range = (start: number, end: number) => {
   return start < end ? result : result.reverse();
 };
 
+export function groupBy<T, T2 = T>(array: T[], key: string | ((val: T) => string), value: (val: T) => T2): { [key: string]: any } {
+  return array.reduce((acc, item) => {
+    const group = typeof key === "string" ? key : key(item);
+    acc[group] = acc[group] ?? [];
+    acc[group].push(value(item));
+    return acc;
+  }, {});
+}
+
 export class Counter extends Map {
   constructor() {
     super();
