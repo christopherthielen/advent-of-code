@@ -15,6 +15,9 @@ export const combine = <T>(items: T[], count: number): Array<T[]> => {
   }, []);
 };
 
+export const lpad = (count: number, str: string) => new Array(Math.max(0, count - str.length)).fill(" ").join("") + str;
+export const rpad = (count: number, str: string) => str + new Array(Math.max(0, count - str.length)).fill(" ").join("");
+
 export const permutations = <T>(items: T[]): Array<T[]> => {
   if (items.length === 2) return [items.slice(), items.reverse()];
   return items.map((item, idx) => permutations(without(items, item)).map((sublist) => [item, ...sublist])).flat();
