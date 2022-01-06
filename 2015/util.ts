@@ -3,6 +3,7 @@ import * as fs from "fs";
 export const toInt = (str: string) => parseInt(str, 10);
 export const without = <T>(items: T[], item: T) => items.filter((x) => x !== item);
 export const uniqR = <T>(acc: T[], item: T): T[] => (acc.includes(item) ? acc : acc.concat(item));
+export const product = <T, T2>(array1: T[], array2: T2[]) => array1.map((val1) => array2.map((val2) => [val1, val2])).flat(1) as [T, T2][];
 export const combine2 = <T>(items: T[]) => combine(items, 2) as Array<[T, T]>;
 export const combine3 = <T>(items: T[]) => combine(items, 3) as Array<[T, T, T]>;
 export const combine = <T>(items: T[], count: number): Array<T[]> => {
