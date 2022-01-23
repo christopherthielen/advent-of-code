@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { isEqual } from "lodash";
+import { fill, isEqual } from "lodash";
 
 export const toInt = (str: string) => parseInt(str, 10);
 export const without = <T>(items: T[], item: T) => items.filter((x) => x !== item);
