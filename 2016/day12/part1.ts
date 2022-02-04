@@ -5,7 +5,9 @@ const lines = readLines("input.txt");
 
 // prettier-ignore
 type Reg = "a" | "b" | "c" | "d";
-const registers = { a: 0, b: 0, c: 0, d: 0 };
+const day1Registers = { a: 0, b: 0, c: 0, d: 0 };
+const day2Registers = { a: 0, b: 0, c: 1, d: 0 };
+const registers = day2Registers;
 
 function cpy(x: string, y: Reg) {
   const num = toInt(x);
