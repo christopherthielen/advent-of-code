@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { fill, isEqual } from "lodash";
 
 export const toInt = (str: string) => parseInt(str, 10);
-export const without = <T>(items: T[], item: T) => items.filter((x) => x !== item);
+export const without = <T>(items: T[], ...withoutItems: T[]) => items.filter((x) => !withoutItems.includes(x));
 export const uniqR = <T>(acc: T[], item: T): T[] => (acc.includes(item) ? acc : acc.concat(item));
 export const uniqUsingIsEqualR = <T>(acc: T[], item: T): T[] => {
   if (!acc.some((x) => isEqual(x, item))) {
