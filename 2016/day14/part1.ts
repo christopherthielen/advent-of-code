@@ -1,6 +1,7 @@
 import { md5 } from "../md5";
 import { range, uniqR } from "../util";
 
+const PART = 2 as number;
 const salt = "ihaygndm";
 // const salt = "abc";
 
@@ -12,12 +13,14 @@ const sequencesOfLength = (str: string, len: number) => {
     .reduce(uniqR, []);
 };
 
+const stretch = (str: string, count: number) => range(1, count).reduce((acc) => md5(acc), str);
 const hashit = (i: number) => {
   const key = salt + i;
-  const hash = md5(key);
+  const firstHash = md5(key);
+  const hash = stretch(key, PART === 2 ? 2016 + 1 : 1);
   const triples = sequencesOfLength(hash, 3);
   const pents = sequencesOfLength(hash, 5);
-  return { key, hash, triples, pents };
+  return { key, firstHash, hash, triples, pents };
 };
 
 const COUNT = 1000;
