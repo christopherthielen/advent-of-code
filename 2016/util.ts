@@ -30,7 +30,7 @@ export const permutations = <T>(items: T[]): Array<T[]> => {
   return items.map((item, idx) => permutations(without(items, item)).map((sublist) => [item, ...sublist])).flat();
 };
 
-export const range = (start: number, end: number) => {
+export const range = (start: number, end: number): number[] => {
   const low = Math.min(start, end);
   const high = Math.max(start, end);
   const result = [];
