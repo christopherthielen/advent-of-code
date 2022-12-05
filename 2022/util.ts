@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { fill, isEqual } from "lodash";
+import { fill, isEqual, split } from "lodash";
 
 export const toInt = (str: string) => parseInt(str, 10);
 export const without = <T>(items: T[], ...withoutItems: T[]) => items.filter((x) => !withoutItems.includes(x));
@@ -63,12 +63,27 @@ export class Counter extends Map {
   }
 }
 
-export function readLines(filename: string): string[] {
+export function readLines(filename: string, filterBlankLines = true): string[] {
   return readFile(filename)
     .split(/[\r\n]/)
-    .filter((x) => !!x);
+    .filter((x) => !filterBlankLines || !!x);
 }
 
 export function readFile(filename: string) {
   return fs.readFileSync(filename, "utf-8");
+}
+
+export function splitArray<T>(array: T[], splitFn: (item: T) => boolean): T[][] {
+  return array.reduce(
+    (acc, item) => {
+      const matches = splitFn(item);
+      if (matches) {
+        acc.push([]);
+      } else {
+        acc[acc.length - 1].push(item);
+      }
+      return acc;
+    },
+    [[]]
+  );
 }
