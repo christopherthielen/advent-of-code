@@ -1,5 +1,5 @@
 import { readLines, splitArray, toInt } from "../util";
-import { array2d, Grid, Item } from "../grid";
+import { Grid, Item } from "../grid";
 
 const lines = readLines("input.txt");
 const values = lines.map((line) => line.split("").map(toInt));
@@ -16,12 +16,8 @@ const isVisible = (grid: Grid<number>, item: Item<number>) => {
   const [left, right] = splitArray(row, (x) => x === item);
   const [above, below] = splitArray(col, (x) => x === item);
 
-  return (
-    left.every((x) => x.val < item.val) ||
-    right.every((x) => x.val < item.val) ||
-    above.every((x) => x.val < item.val) ||
-    below.every((x) => x.val < item.val)
-  );
+  const isShorter = (x) => x.val < item.val;
+  return left.every(isShorter) || right.every(isShorter) || above.every(isShorter) || below.every(isShorter);
 };
 
 const visible = grid.items.flat().filter((item) => isVisible(grid, item));
