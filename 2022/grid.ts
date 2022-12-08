@@ -12,6 +12,16 @@ export class Item<T> {
   sw: Item<T>;
   s: Item<T>;
   se: Item<T>;
+
+  toString() {
+    const char = (item: Item<T>) => item?.val ?? " ";
+    return (
+      `x: ${this.x} y: ${this.y}\n` +
+      `${char(this.nw)}${char(this.n)}${char(this.ne)}\n` +
+      `${char(this.w)}${char(this)}${char(this.e)}\n` +
+      `${char(this.sw)}${char(this.s)}${char(this.se)}\n`
+    );
+  }
 }
 
 export class Grid<T> {
