@@ -1,8 +1,16 @@
 export const array1d = <T>(len: number, valFactory: (i) => T) => new Array(len).fill(0).map((val, i) => valFactory(i));
 export const array2d = <T>(h: number, w: number, valFactory: (i) => T): T[][] => array1d(h, () => null).map(() => array1d(w, valFactory));
 
+export type Direction = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
+
 export class Item<T> {
   constructor(public val: T, public x: number, public y: number) {}
+
+  static DIRECTIONS = {
+    ALL: ["nw", "n", "ne", "w", "e", "sw", "s", "se"] as Direction[],
+    DIAGONAL: ["nw", "ne", "sw", "se"] as Direction[],
+    STRAIGHT: ["n", "e", "w", "s"] as Direction[],
+  };
 
   nw: Item<T>;
   n: Item<T>;
@@ -12,6 +20,10 @@ export class Item<T> {
   sw: Item<T>;
   s: Item<T>;
   se: Item<T>;
+
+  get neighbors() {
+    return [this.nw, this.n, this.ne, this.w, this.e, this.sw, this.s, this.se].filter((x) => !!x);
+  }
 
   toString() {
     const val = this?.val ?? " ";
