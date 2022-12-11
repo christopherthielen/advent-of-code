@@ -1,5 +1,5 @@
-export const array1d = <T>(len: number, val: T) => new Array(len).fill(val);
-export const array2d = <T>(h: number, w: number, val: T): T[][] => array1d(h, null).map(() => array1d(w, val));
+export const array1d = <T>(len: number, valFactory: (i) => T) => new Array(len).fill(0).map((val, i) => valFactory(i));
+export const array2d = <T>(h: number, w: number, valFactory: (i) => T): T[][] => array1d(h, () => null).map(() => array1d(w, valFactory));
 
 export class Item<T> {
   constructor(public val: T, public x: number, public y: number) {}
@@ -14,13 +14,9 @@ export class Item<T> {
   se: Item<T>;
 
   toString() {
-    const char = (item: Item<T>) => item?.val ?? " ";
-    return (
-      `x: ${this.x} y: ${this.y}\n` +
-      `${char(this.nw)}${char(this.n)}${char(this.ne)}\n` +
-      `${char(this.w)}${char(this)}${char(this.e)}\n` +
-      `${char(this.sw)}${char(this.s)}${char(this.se)}\n`
-    );
+    const val = this?.val ?? " ";
+    const isObject = typeof val !== "number" && typeof val !== "string";
+    return `x: ${this.x} y: ${this.y} val: ${isObject ? JSON.stringify(val) : val}`;
   }
 }
 
@@ -73,8 +69,12 @@ export class Grid<T> {
     });
   }
 
-  toString() {
-    console.log("tostring");
-    return this.items.map((line) => line.map((i) => i.val).join("")).join("\n");
+  toString(itemToString?: (item: Item<T>) => string) {
+    itemToString = itemToString ?? ((item) => item.toString());
+    return this.items
+      .map((line) => {
+        return line.map(itemToString).join("");
+      })
+      .join("\n");
   }
 }
