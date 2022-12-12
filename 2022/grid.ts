@@ -21,8 +21,8 @@ export class Item<T> {
   s: Item<T>;
   se: Item<T>;
 
-  get neighbors() {
-    return [this.nw, this.n, this.ne, this.w, this.e, this.sw, this.s, this.se].filter((x) => !!x);
+  neighbors(directions = Item.DIRECTIONS.ALL) {
+    return directions.map((d) => this[d]).filter((x) => !!x);
   }
 
   toString() {
