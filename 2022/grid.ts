@@ -75,8 +75,8 @@ export class Grid<T> {
   col = (x: number) => this.items.map((line) => line[x]);
   row = (y: number) => this.items[y];
 
-  rect(x1: number, y1: number, x2: number, y2: number): Item<T>[] {
-    return this.items.slice(Math.min(y1, y2), Math.max(y1, y2)).flatMap((line) => {
+  rect(x1: number, y1: number, x2: number, y2: number): Item<T>[][] {
+    return this.items.slice(Math.min(y1, y2), Math.max(y1, y2)).map((line) => {
       return line.slice(Math.min(x1, x2), Math.max(x1, x2));
     });
   }
