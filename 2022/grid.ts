@@ -72,8 +72,35 @@ export class Grid<T> {
     return this.items[0].length;
   }
 
+  rangeCheck(x: number, y: number) {
+    if (x < 0) {
+      throw new Error(`x coordinate out of bounds (${x} < 0)`);
+    } else if (x >= this.width) {
+      throw new Error(`x coordinate out of bounds (${x} >= ${this.width})`);
+    } else if (y < 0) {
+      throw new Error(`y coordinate out of bounds (${y} < 0)`);
+    } else if (y >= this.height) {
+      throw new Error(`y coordinate out of bounds (${y} >= ${this.height})`);
+    }
+  }
+
+  set(x: number, y: number, val: T) {
+    this.rangeCheck(x, y);
+    this.items[y][x].val = val;
+  }
+
+  get(x: number, y: number): T {
+    this.rangeCheck(x, y);
+    return this.items[y][x].val;
+  }
+
   col = (x: number) => this.items.map((line) => line[x]);
   row = (y: number) => this.items[y];
+
+  subgrid(x1: number, y1: number, x2: number, y2: number): Grid<T> {
+    const items = this.rect(x1, y1, x2, y2);
+    return new Grid(items.map((line) => line.map((item) => item.val)));
+  }
 
   rect(x1: number, y1: number, x2: number, y2: number): Item<T>[][] {
     return this.items.slice(Math.min(y1, y2), Math.max(y1, y2)).map((line) => {
