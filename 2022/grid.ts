@@ -42,26 +42,29 @@ export class Grid<T> {
       });
     });
 
-    const flat = items.flat();
-    flat.forEach((item) => {
-      const { x, y } = item;
+    this.items = this.relinkNeighbors(items);
+  }
 
-      const yN = y - 1;
-      const yS = y + 1;
-      const xW = x - 1;
-      const xE = x + 1;
+  relinkNeighbors(items: Item<T>[][]) {
+    items.forEach((row, y) => {
+      row.forEach((item, x) => {
+        const yN = y - 1;
+        const yS = y + 1;
+        const xW = x - 1;
+        const xE = x + 1;
 
-      item.nw = items?.[yN]?.[xW];
-      item.n = items?.[yN]?.[x];
-      item.ne = items?.[yN]?.[xE];
-      item.w = items?.[y]?.[xW];
-      item.e = items?.[y]?.[xE];
-      item.sw = items?.[yS]?.[xW];
-      item.s = items?.[yS]?.[x];
-      item.se = items?.[yS]?.[xE];
+        item.nw = items?.[yN]?.[xW];
+        item.n = items?.[yN]?.[x];
+        item.ne = items?.[yN]?.[xE];
+        item.w = items?.[y]?.[xW];
+        item.e = items?.[y]?.[xE];
+        item.sw = items?.[yS]?.[xW];
+        item.s = items?.[yS]?.[x];
+        item.se = items?.[yS]?.[xE];
+      });
     });
 
-    this.items = items;
+    return items;
   }
 
   get height() {
@@ -90,8 +93,12 @@ export class Grid<T> {
   }
 
   get(x: number, y: number): T {
+    return this.getItem(x, y).val;
+  }
+
+  getItem(x: number, y: number): Item<T> {
     this.rangeCheck(x, y);
-    return this.items[y][x].val;
+    return this.items[y][x];
   }
 
   col = (x: number) => this.items.map((line) => line[x]);
