@@ -3,7 +3,24 @@ export const array2d = <T>(h: number, w: number, valFactory: (i) => T): T[][] =>
 
 export type Direction = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
 
-export class Item<T> {
+export interface IItem<T> {
+  x: number;
+  y: number;
+  val: T;
+
+  nw: IItem<T>;
+  n: IItem<T>;
+  ne: IItem<T>;
+  w: IItem<T>;
+  e: IItem<T>;
+  sw: IItem<T>;
+  s: IItem<T>;
+  se: IItem<T>;
+
+  neighbors(directions?: Direction[]): IItem<T>[];
+}
+
+export class Item<T> implements IItem<T> {
   constructor(public val: T, public x: number, public y: number) {}
 
   static DIRECTIONS = {
@@ -28,7 +45,7 @@ export class Item<T> {
   toString() {
     const val = this?.val ?? " ";
     const isObject = typeof val !== "number" && typeof val !== "string";
-    return `x: ${this.x} y: ${this.y} val: ${isObject ? JSON.stringify(val) : val}`;
+    return `[${this.x},${this.y}]: ${isObject ? JSON.stringify(val) : val}`;
   }
 }
 
