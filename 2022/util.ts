@@ -1,5 +1,5 @@
 import * as fs from "fs";
-import { fill, isEqual, split } from "lodash";
+import { isEqual } from "lodash";
 
 export const toInt = (str: string) => parseInt(str, 10);
 export const without = <T>(items: T[], ...withoutItems: T[]) => items.filter((x) => !withoutItems.includes(x));
@@ -27,7 +27,7 @@ export const rpad = (count: number, str: string) => str + new Array(Math.max(0, 
 
 export const permutations = <T>(items: T[]): Array<T[]> => {
   if (items.length === 2) return [items.slice(), items.reverse()];
-  return items.map((item, idx) => permutations(without(items, item)).map((sublist) => [item, ...sublist])).flat();
+  return items.map((item) => permutations(without(items, item)).map((sublist) => [item, ...sublist])).flat();
 };
 
 export const range = (start: number, end: number): number[] => {
@@ -54,11 +54,11 @@ export class Counter extends Map {
     super();
   }
 
-  count(key: string) {
+  count(key: string, delta = 1) {
     if (!this.has(key)) {
-      this.set(key, 1);
+      this.set(key, delta);
     } else {
-      this.set(key, this.get(key) + 1);
+      this.set(key, this.get(key) + delta);
     }
   }
 }
