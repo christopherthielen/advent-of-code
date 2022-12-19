@@ -1,6 +1,6 @@
 import { Counter, lpad } from "./util";
 
-export function perf(fn: Function, interval = 1000) {
+export function perf<ARG extends Function>(fn: ARG, interval = 1000): ARG {
   const micros = () => {
     const hrTime = process.hrtime();
     return hrTime[0] * 1000000 + hrTime[1] / 1000;
@@ -34,5 +34,5 @@ export function perf(fn: Function, interval = 1000) {
     counter.count(name + ".elapsed", delta);
     report();
     return result;
-  };
+  } as unknown as ARG;
 }
