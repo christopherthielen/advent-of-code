@@ -1,37 +1,47 @@
-import { Counter, lpad } from "./util";
+// [ count, totalTicks ]
+import { lpad } from "./util";
 
-export function perf<ARG extends Function>(fn: ARG, interval = 1000, fname = fn.name): ARG {
-  const micros = () => {
-    const hrTime = process.hrtime();
-    return hrTime[0] * 1000000 + hrTime[1] / 1000;
-  };
-  const counter = new Counter();
-  const COUNT = fname + ".count";
-  const ELAPSED = fname + ".elapsed";
+export const PERF = { enabled: false };
+const data: { [key: string]: { count: number; elapsed: number } } = {};
 
-  let lastReport = Date.now();
+export function perf<ARG extends Function>(fn: ARG, fnname = fn.name): ARG {
+  if (!PERF.enabled) return fn;
 
-  function report() {
-    if (Date.now() - lastReport > interval) {
-      const count = counter.get(COUNT);
-      const elapsed = counter.get(ELAPSED);
-
-      const c = lpad(20, "" + count);
-      const e = lpad(20, "" + elapsed.toFixed(3));
-      const avg = lpad(20, "" + (elapsed / count).toFixed(3));
-      const persec = lpad(20, "" + (1000000 / (elapsed / count)).toFixed(3));
-      console.log(`${lpad(12, fname)} count: ${c} elapsed: ${e} µs avg: ${avg} µs ${persec}/sec`);
-      lastReport = Date.now();
-    }
+  function _perf() {
+    const ticks = now();
+    const result = fn.apply(this, arguments);
+    const delta = now() - ticks;
+    data[fnname] = data[fnname] ?? { count: 0, elapsed: 0 };
+    data[fnname].count++;
+    data[fnname].elapsed += delta;
+    return result;
   }
 
-  return function () {
-    const tick = micros();
-    const result = fn.apply(this, arguments);
-    const delta = micros() - tick;
-    counter.count(fname + ".count");
-    counter.count(fname + ".elapsed", delta);
-    report();
-    return result;
-  } as unknown as ARG;
+  return _perf as any as ARG;
 }
+
+export function showPerf() {
+  Object.keys(data)
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((key) => {
+      console.log(
+        lpad(40, `${key} count: ${data[key].count}`) +
+          lpad(40, `tot: ${data[key].elapsed}`) +
+          lpad(40, `avg: ${(data[key].elapsed / data[key].count).toFixed(3)}`)
+      );
+    });
+}
+
+export const now = (unit?: "milli" | "micro" | "nano") => {
+  const hrTime = process.hrtime();
+
+  switch (unit) {
+    case "milli":
+      return hrTime[0] * 1000 + hrTime[1] / 1000000;
+    case "micro":
+      return hrTime[0] * 1000000 + hrTime[1] / 1000;
+    case "nano":
+    default:
+      return hrTime[0] * 1000000000 + hrTime[1];
+  }
+};
