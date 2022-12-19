@@ -63,6 +63,28 @@ export class Counter extends Map {
   }
 }
 
+export class CounterTimer extends Counter {
+  constructor(public reportIntervalMs: number = 10000) {
+    super();
+  }
+
+  private lastReportTime = Date.now();
+
+  count(key: string, delta = 1) {
+    super.count(key, delta);
+    if (Date.now() - this.lastReportTime > this.reportIntervalMs) {
+      this.report();
+    }
+  }
+
+  report() {
+    this.lastReportTime = Date.now();
+    [...this.keys()].sort().forEach((key) => {
+      console.log(`Count ${key}: ${this.get(key)}`);
+    });
+  }
+}
+
 export function readLines(filename: string, filterBlankLines = true): string[] {
   return readFile(filename)
     .split(/[\r\n]/)
