@@ -20,16 +20,23 @@ export function perf<ARG extends Function>(fn: ARG, fnname = fn.name): ARG {
   return _perf as any as ARG;
 }
 
-export function showPerf() {
-  Object.keys(data)
-    .sort((a, b) => a.localeCompare(b))
-    .forEach((key) => {
-      console.log(
-        lpad(40, `${key} count: ${data[key].count}`) +
-          lpad(40, `tot: ${data[key].elapsed}`) +
-          lpad(40, `avg: ${(data[key].elapsed / data[key].count).toFixed(3)}`)
-      );
-    });
+let lastShowPerf = Date.now();
+
+export function showPerf(interval = -1) {
+  const now = Date.now();
+  if (now - lastShowPerf > interval) {
+    lastShowPerf = now;
+    Object.keys(data)
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((key) => {
+        console.log(
+          lpad(40, `${key} count: ${data[key].count}`) +
+            lpad(40, `tot: ${data[key].elapsed}`) +
+            lpad(40, `avg: ${(data[key].elapsed / data[key].count).toFixed(3)}`) +
+            lpad(40, `persec: ${((data[key].count / data[key].elapsed) * 1000000000).toFixed(3)}`)
+        );
+      });
+  }
 }
 
 export const now = (unit?: "milli" | "micro" | "nano") => {
