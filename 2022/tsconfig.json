@@ -3,6 +3,7 @@
     "day*/**/*.ts"
   ],
   "compilerOptions": {
+    "moduleResolution": "Node",
     "esModuleInterop": true,
     "target": "ES6",
     "lib": [
