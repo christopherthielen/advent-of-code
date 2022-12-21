@@ -1,5 +1,6 @@
+import { memoize } from "lodash";
 import { PERF, perf, showPerf } from "../perf";
-import { CounterTimer, readLines, toInt } from "../util";
+import { readLines, toInt } from "../util";
 
 PERF.enabled = true;
 const TICKS = 30;
@@ -62,9 +63,9 @@ const start: Context = {
   unopened: valves.filter((x) => x !== startValve),
 };
 
-const flowRate = perf(function flowRate(valve: ValveInfo, time: number) {
+const flowRate = function flowRate(valve: ValveInfo, time: number) {
   return Math.max(0, valve.flow * (TICKS - time - 1));
-});
+};
 
 const without = <T>(items: T[], item: T) => items.filter((x) => x !== item);
 const next = perf(function next(context: Context): Context[] {
@@ -75,7 +76,9 @@ const next = perf(function next(context: Context): Context[] {
     pos,
     unopened: without(unopened, pos),
   });
-  const moves: Context[] = pos.neighbors.map((valve) => ({ time: time + 1, totalFlow, pos: valve, unopened }));
+  const moves: Context[] = pos.neighbors.map((valve) => {
+    return { time: time + 1, totalFlow, pos: valve, unopened };
+  });
   return unopened.includes(pos) ? moves.concat(openValve()) : moves;
 });
 
@@ -85,37 +88,41 @@ const setBest = (newBest: Context) => {
   console.log({ best: best.totalFlow });
 };
 
-const theoreticalMaxScoreRemaining = perf(function tmsr(context: Context) {
-  const ticksRemaining = TICKS - context.time;
-  const scores = context.unopened
-    .map((v) => {
-      return v.flow * Math.max(0, TICKS - context.time - context.pos.distance[v.name] - 1);
-    })
-    .sort()
-    .slice(0 - ticksRemaining);
-  return scores.reduce((acc, x) => acc + x, 0);
-});
+const makeCacheKey = (pos: ValveInfo, unopened: ValveInfo[], time: number) => {
+  return `${pos.name} ${unopened.map((v) => v.name).join(",")} ${time}`;
+};
 
-const counter = new CounterTimer(Number.MAX_SAFE_INTEGER);
+const theoreticalMaxScoreRemaining = perf(
+  memoize(
+    (context: Context) => {
+      const ticksRemaining = TICKS - context.time;
+      const scores = context.unopened
+        .map((v) => {
+          return v.flow * Math.max(0, TICKS - context.time - context.pos.distance[v.name] - 1);
+        })
+        .sort()
+        .slice(0 - ticksRemaining);
+      return scores.reduce((acc, x) => acc + x, 0);
+    },
+    (context) => makeCacheKey(context.pos, context.unopened, context.time)
+  ),
+  "tmsr"
+);
 
 const stack = [start];
 while (stack.length) {
   showPerf(10000);
   const moves = next(stack.pop());
   moves.forEach((result) => {
-    counter.count("test" + result.time);
     const resultScore = result.totalFlow;
     if (result.time >= TICKS) {
       if (result.totalFlow > best.totalFlow) {
-        counter.count("best");
         setBest(result);
       }
     } else {
       if (resultScore + theoreticalMaxScoreRemaining(result) > best.totalFlow) {
-        counter.count("push" + result.time);
         stack.push(result);
       } else {
-        counter.count("exit" + result.time);
       }
     }
   });
