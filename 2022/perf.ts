@@ -21,15 +21,17 @@ export function perf<ARG extends Function>(fn: ARG, fnname = fn.name): ARG {
 
 let lastShowPerf = Date.now();
 
+const fmt0 = Intl.NumberFormat("default", { useGrouping: true, maximumFractionDigits: 0 });
+const fmt3 = Intl.NumberFormat("default", { useGrouping: true, maximumFractionDigits: 6, minimumFractionDigits: 6 });
 const boot = Date.now();
+
 export function showPerf(interval = -1) {
   const now = Date.now();
-  const fmt0 = Intl.NumberFormat("default", { useGrouping: true, maximumFractionDigits: 0 });
-  const fmt3 = Intl.NumberFormat("default", { useGrouping: true, maximumFractionDigits: 6, minimumFractionDigits: 6 });
   if (now - lastShowPerf > interval) {
     const PADDING1 = 15;
     const PADDING2 = 20;
     lastShowPerf = now;
+
     // Render headings
     console.log(
       lpad(PADDING1, `elapsed: ${fmt0.format(Math.floor((Date.now() - boot) / THOUSAND))}s`) +
