@@ -22,8 +22,8 @@ export const product = <T, T2>(array1: T[], array2: T2[]) => array1.map((val1) =
 //   }, []);
 // };
 
-export const lpad = (count: number, str: string) => new Array(Math.max(0, count - str.length)).fill(" ").join("") + str;
-export const rpad = (count: number, str: string) => str + new Array(Math.max(0, count - str.length)).fill(" ").join("");
+export const lpad = (count: number, str: string, fill = " ") => new Array(Math.max(0, count - str.length)).fill(fill).join("") + str;
+export const rpad = (count: number, str: string, fill = " ") => str + new Array(Math.max(0, count - str.length)).fill(fill).join("");
 
 export const permutations = <T>(items: T[]): Array<T[]> => {
   if (items.length === 2) return [items.slice(), items.reverse()];

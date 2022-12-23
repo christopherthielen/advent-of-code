@@ -1,32 +1,23 @@
-import { isEqual, uniqBy } from "lodash";
+import { groupBy } from "lodash";
 import * as yargs from "yargs";
 import { PERF, perf } from "../perf";
-import { range, readLines, toInt, without } from "../util";
+import { CounterTimer, lpad, range, readLines, toInt, without } from "../util";
 
-yargs.option("perf", { boolean: true }).option("example", { boolean: true });
-
+["perf", "example", "printroutes"].forEach((opt) => yargs.option(opt, { boolean: true }));
 PERF.enabled = !!yargs.argv["perf"];
 const TICKS = 26;
 const INPUT = yargs.argv["example"] ? "example.txt" : "input.txt";
 
-type Valve = {
-  name: string;
-  flowPerMin: number;
-  neighbors: Valve[];
-};
+type Valve = { id: number; name: string; flowPerMin: number; neighbors: Valve[] };
+type Distances = { [from: string]: { [to: string]: number } };
 
-type Distances = {
-  [from: string]: {
-    [to: string]: number;
-  };
-};
-
-const parseLine = (line: string): Valve & { rawNeighbors: string[] } => {
+const parseLine = (line: string, idx: number): Valve & { rawNeighbors: string[] } => {
   // Valve AA has flow rate=0; tunnels lead to valves RZ, QQ, FH, IM, VJ
   const regExp = /Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? (.*)/;
-  const [_, valve, flow, otherValves] = regExp.exec(line);
+  const [_, valveName, flow, otherValves] = regExp.exec(line);
   return {
-    name: valve,
+    id: Math.pow(2, idx),
+    name: valveName,
     flowPerMin: toInt(flow),
     neighbors: [],
     rawNeighbors: otherValves.split(", "),
@@ -34,8 +25,8 @@ const parseLine = (line: string): Valve & { rawNeighbors: string[] } => {
 };
 
 const loadValves = (): Valve[] => {
-  const valves = readLines(INPUT).map((line) => parseLine(line));
-  // link to other ValveInfo objects
+  const valves = readLines(INPUT).map((line, idx) => parseLine(line, idx));
+  // link to other Valve objects
   valves.forEach((valve) => {
     valve.neighbors = valve.rawNeighbors.map((n) => valves.find((v2) => v2.name === n));
     delete valve.rawNeighbors;
@@ -67,60 +58,71 @@ const computeDistances = (valves: Valve[]): Distances => {
   return distances;
 };
 
-const valves = loadValves();
-const distances = computeDistances(valves);
-type Context = { time: number; totalFlow: number; pos1: Valve; pos2: Valve; unopened: Valve[] };
-const startValve: Valve = valves.find((v) => v.name === "AA");
-const start: Context = {
-  time: 0,
-  totalFlow: 0,
-  pos1: startValve,
-  pos2: startValve,
-  unopened: valves.filter((x) => x.flowPerMin > 0),
-};
-
 const routeScore = perf((route: Valve[]) => {
   return route.reduce(
     (acc, valve, idx) => {
-      const flow = flowRate(valve, acc.time);
       const distance = distances[acc.last.name][valve.name];
       const elapsed = distance + (idx === 0 ? 0 : 1);
-      return { last: valve, time: acc.time - elapsed, flow: acc.flow + flow };
+      const flow = acc.flow + flowRate(valve, acc.time + elapsed);
+      return { last: valve, time: acc.time + elapsed, flow };
     },
-    { last: route[0], time: TICKS, flow: 0 }
+    { last: route[0], time: 0, flow: 0 }
   ).flow;
 }, "routeScore");
 
-type Route = {
-  valves: Valve[];
-  desc: string;
-  score: number;
-};
-const routeToString = (route: Valve[]) => route.map((v) => v.name).join(" -> ");
+type Route = { valves: Valve[]; mask: number; desc: string; score: number };
+const routeDesc = (route: Valve[]) => route.map((v) => v.name).join(" -> ");
 // Returns true if the dest valve is reachable (and can be opened) within timeRemaining ticks
 const isReachable = (src: Valve, dest: Valve, timeRemaining: number) => distances[src.name][dest.name] < timeRemaining + 1;
 const flowRate = (valve: Valve, time: number) => Math.max(0, valve.flowPerMin * (TICKS - time));
 const allPaths = (start: Valve, unopened: Valve[], timeRemaining: number): Valve[][] => {
+  const getChildRoutes = (v) => allPaths(v, without(unopened, v), timeRemaining - distances[start.name][v.name] + 1);
   const nonTerminal = unopened.filter((v) => isReachable(start, v, timeRemaining));
-  if (nonTerminal.length === 0) return [[start]];
   const routes = nonTerminal
-    .map((v) => allPaths(v, without(unopened, v), timeRemaining - distances[start.name][v.name] + 1))
+    .map(getChildRoutes)
     .flat()
     .map((childRoute) => [start, ...childRoute]);
-  return routes;
+  return [[start], ...routes];
 };
 
-const makeRoute = (valves: Valve[]): Route => ({ valves, desc: routeToString(valves), score: routeScore(valves) });
-const routes: Route[] = allPaths(start.pos1, start.unopened, TICKS - start.time).map(makeRoute);
+const routeToString = (r: Route) => `${lpad(nonZeroValves.length + 6, r.mask.toString(2), "0")} ${lpad(5, "" + r.score)} ${r.desc}: `;
+const makeMask = (valves: Valve[]) => valves.reduce((acc, x) => acc | x.id, 0);
+const makeRoute = (valves: Valve[]): Route => ({
+  mask: makeMask(valves),
+  valves,
+  desc: routeDesc(valves),
+  score: routeScore(valves),
+});
 
-routes.forEach((route) => console.log(`${route.desc}: ${route.score}`));
+// ------------------------------------------------------------------------------
 
-let best: Context = { ...start, time: TICKS, totalFlow: 0 };
-const setBest = (newBest: Context) => {
-  best = newBest;
-  console.log({ best: best.totalFlow });
-};
+const valves = loadValves();
+const nonZeroValves = valves.filter((v) => v.flowPerMin > 0);
+const distances = computeDistances(valves);
+const startValve: Valve = valves.find((v) => v.name === "AA");
+const rawRoutes: Route[] = allPaths(startValve, nonZeroValves, TICKS)
+  .map(makeRoute)
+  .sort((a, b) => a.mask - b.mask);
+const routes = Object.values(groupBy(rawRoutes, (r) => r.mask)).map((routesForMask) => {
+  return routesForMask.reduce((acc, x) => (acc && acc.score > x.score ? acc : x));
+});
+if (yargs.argv["printroutes"]) routes.forEach((route) => console.log(routeToString(route)));
+console.log(`${rawRoutes.length} raw routes`);
+console.log(`${routes.length} uniq routes`);
 
-const stack = [];
-stack.push(start);
-console.log({ bestest: best.totalFlow });
+const counter = new CounterTimer(5000);
+const candidates = routes.map((route) => {
+  counter.count("route");
+  const maskAA = ~startValve.id;
+  const otherRoutes = routes.filter((other) => (maskAA & other.mask & route.mask) === 0);
+  const best = otherRoutes.reduce((acc, x) => (acc && acc.score > x.score ? acc : x), null);
+  return [route, best];
+});
+
+const [best1, best2] = candidates.reduce((acc, x) => {
+  return acc && acc[0].score + acc[1].score > x[0].score + x[1].score ? acc : x;
+});
+
+console.log(lpad(10, best1.score.toString()), best1.desc);
+console.log(lpad(10, best2.score.toString()), best2.desc);
+console.log(lpad(10, (best1.score + best2.score).toString()));
