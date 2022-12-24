@@ -22,6 +22,8 @@ export const product = <T, T2>(array1: T[], array2: T2[]) => array1.map((val1) =
 //   }, []);
 // };
 
+export const max = (numbers: number[]) => numbers.reduce((acc, x) => Math.max(acc, x), numbers[0]);
+export const min = (numbers: number[]) => numbers.reduce((acc, x) => Math.min(acc, x), numbers[0]);
 export const lpad = (count: number, str: string, fill = " ") => new Array(Math.max(0, count - str.length)).fill(fill).join("") + str;
 export const rpad = (count: number, str: string, fill = " ") => str + new Array(Math.max(0, count - str.length)).fill(fill).join("");
 

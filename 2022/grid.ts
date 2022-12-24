@@ -6,6 +6,7 @@ export const array2d = <T>(h: number, w: number, valFactory: (x, y) => T): T[][]
 };
 
 export type Direction = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
+export type Coord = { x: number; y: number };
 
 export interface IItem<T> {
   x: number;
