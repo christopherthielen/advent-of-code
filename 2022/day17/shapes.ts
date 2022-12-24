@@ -1,6 +1,6 @@
-import { VirtualGrid } from "../virtualgrid";
-
-export type Coord = { x: number; y: number };
+import { Coord } from "../grid";
+import { Perf } from "../perf";
+import type { VirtualGrid } from "../virtualgrid";
 
 export class Shape {
   private sprite: string[][];
@@ -20,10 +20,16 @@ export class Shape {
   }
 
   get coords() {
+    return this.getCoords();
+  }
+
+  @Perf("coords")
+  private getCoords() {
     const { x, y } = this.coord;
     return this.spriteCoords.map((c) => ({ x: x + c.x, y: y + c.y }));
   }
 
+  @Perf()
   move(dx: number, dy: number): boolean {
     const blocked = this.coords.some((coord) => this.grid.get(coord.x + dx, coord.y + dy) !== ".");
     if (blocked) return false;
@@ -32,16 +38,35 @@ export class Shape {
     return true;
   }
 
-  handleJet = (jet: "<" | ">") => (jet === "<" ? this.left() : this.right());
-  left = (): boolean => this.coord.x > 0 && this.move(-1, 0);
-  right = (): boolean => this.coord.x < 7 - this.width && this.move(1, 0);
-  down = (): boolean => this.move(0, 1);
+  @Perf() handleJet(jet: "<" | ">") {
+    return jet === "<" ? this.left() : this.right();
+  }
 
+  @Perf() left(): boolean {
+    return this.coord.x > 0 && this.move(-1, 0);
+  }
+
+  @Perf()
+  right(): boolean {
+    return this.coord.x < 7 - this.width && this.move(1, 0);
+  }
+
+  @Perf()
+  down(): boolean {
+    let b = this.move(0, 1);
+    if (this.coord.y >= 0) {
+      console.log(this.coord.y);
+    }
+    return b;
+  }
+
+  @Perf()
   spawn() {
     this.coord.x = 2;
     this.coord.y = this.grid.minY - 3 - this.height;
   }
 
+  @Perf()
   land() {
     this.coords.forEach(({ x, y }) => this.grid.set(x, y, "#"));
   }
