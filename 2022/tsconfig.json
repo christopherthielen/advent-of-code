@@ -3,6 +3,7 @@
     "day*/**/*.ts"
   ],
   "compilerOptions": {
+    "experimentalDecorators": true,
     "moduleResolution": "Node",
     "esModuleInterop": true,
     "target": "ES6",
