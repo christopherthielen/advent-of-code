@@ -1,5 +1,9 @@
-export const array1d = <T>(len: number, valFactory: (i) => T) => new Array(len).fill(0).map((val, i) => valFactory(i));
-export const array2d = <T>(h: number, w: number, valFactory: (i) => T): T[][] => array1d(h, () => null).map(() => array1d(w, valFactory));
+export const array1d = <T>(len: number, valFactory: (x) => T = () => null) => {
+  return new Array(len).fill(0).map((val, x) => valFactory(x));
+};
+export const array2d = <T>(h: number, w: number, valFactory: (x, y) => T): T[][] => {
+  return array1d(h).map((_ignore, y) => array1d(w, (x) => valFactory(x, y)));
+};
 
 export type Direction = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
 

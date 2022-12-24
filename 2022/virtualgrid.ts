@@ -43,7 +43,22 @@ export class VirtualGrid<T = any> {
 
   private BUCKETS = 1024 * 512;
   public items: VItem<T>[][] = new Array(this.BUCKETS).fill(0).map(() => []);
+  minX = 0;
+  minY = 0;
+  maxX = 0;
+  maxY = 0;
+
   private bucket = (x: number, y: number) => this.items[Math.abs(x + y) % this.BUCKETS];
+
+  public clone(): VirtualGrid<T> {
+    const clone = new VirtualGrid(this.factory);
+    clone.items = this.items.map((bucket) => bucket.map((item) => new VItem(clone, item.x, item.y, item.val)));
+    clone.minX = this.minX;
+    clone.minY = this.minY;
+    clone.maxX = this.maxX;
+    clone.maxY = this.maxY;
+    return clone;
+  }
 
   set(x: number, y: number, val: T): void {
     const item = this.getItem(x, y) ?? this.addItem(x, y);
@@ -107,12 +122,7 @@ export class VirtualGrid<T = any> {
     }
   }
 
-  minX = 0;
-  minY = 0;
-  maxX = 0;
-  maxY = 0;
-
-  toString(itemToString?: (item: VItem<T>) => string) {
+  toString(itemToString: (item: VItem<T>) => string = (i) => i.val as any) {
     return range(this.minY, this.maxY)
       .map((y) => {
         return this.row(y, this.minX, this.maxX)
